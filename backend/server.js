@@ -14,7 +14,6 @@ const io = new Server(server, {
     }
 });
 
-// 🧠 Track mentor per room
 const roomMentors = {};
 const roomUsers = {};
 const currentCode = {};
@@ -24,14 +23,16 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (id) => {
         console.log(`💥 joinRoom START | socket: ${socket.id} | room: ${id}`);
-        console.log('🔍 BEFORE JOIN:', {
-            roomUsers: roomUsers[id],
-            roomMentor: roomMentors[id],
-            currentCode: currentCode[id],
-        });
 
         if (!roomUsers[id]) {
             roomUsers[id] = [];
+        }
+
+        // Clean up disconnected sockets in roomUsers
+        roomUsers[id] = roomUsers[id].filter(sid => io.sockets.sockets.get(sid));
+        if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
+            console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
+            delete roomMentors[id];
         }
 
         if (!roomUsers[id].includes(socket.id)) {
@@ -41,13 +42,6 @@ io.on('connection', (socket) => {
         socket.join(id);
         console.log(`👥 User ${socket.id} joined room: ${id}`);
 
-        // ✅ Clean up stale mentor if their socket is gone
-        if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
-            console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
-            delete roomMentors[id];
-        }
-
-        // ✅ Assign role
         if (!roomMentors[id]) {
             roomMentors[id] = socket.id;
             io.to(socket.id).emit('roleAssigned', 'Mentor');
@@ -57,12 +51,10 @@ io.on('connection', (socket) => {
             console.log(`🟢 Assigned Student: ${socket.id}`);
         }
 
-        // Send current code to new student (if exists)
         if (currentCode[id]) {
             io.to(socket.id).emit('codeUpdate', currentCode[id]);
         }
 
-        // Update student count
         const studentCount = roomUsers[id].filter(uid => uid !== roomMentors[id]).length;
         io.to(id).emit('updateStudentCount', studentCount);
 
@@ -106,7 +98,6 @@ io.on('connection', (socket) => {
             if (index !== -1) {
                 users.splice(index, 1);
 
-                // 🧠 If mentor left
                 if (roomMentors[roomId] === socket.id) {
                     console.log(`⚠️ Mentor left room ${roomId}, kicking students...`);
                     io.to(roomId).emit('mentorLeft');
@@ -114,12 +105,10 @@ io.on('connection', (socket) => {
                     delete currentCode[roomId];
                     delete roomUsers[roomId];
                 } else {
-                    // Student left, update count
                     const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
                     io.to(roomId).emit('updateStudentCount', studentCount);
                 }
 
-                // Cleanup empty room
                 if (users.length === 0) {
                     delete roomUsers[roomId];
                     delete currentCode[roomId];
