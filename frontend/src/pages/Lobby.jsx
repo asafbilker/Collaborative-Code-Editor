@@ -11,7 +11,6 @@ const Lobby = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch code blocks from the backend
     fetch(`${API_BASE_URL}/api/codeblocks`)
       .then((response) => response.json())
       .then((data) => setCodeBlocks(data))

@@ -9,7 +9,6 @@ const API_BASE_URL =
     ? 'http://localhost:5000'
     : 'https://moveo-project-v3tk.onrender.com';
 
-console.log(`🌍 API_BASE_URL resolved to: ${API_BASE_URL}`);
 const socket = io(API_BASE_URL);
 
 const CodeBlockPage = () => {
@@ -24,31 +23,18 @@ const CodeBlockPage = () => {
 
   useEffect(() => {
     socket.emit('joinRoom', id);
-    console.log(`🚪 Emitted joinRoom for room ID: ${id}`);
 
     fetch(`${API_BASE_URL}/api/codeblocks/${id}`)
       .then((response) => response.json())
       .then((data) => {
-        console.log('📦 Received code block data:', data);
         setCodeBlock(data);
-        const timeout = setTimeout(() => {
-          setCode((prev) => prev || data.initialCode);
-        }, 300);
+        setCode((prev) => prev || data.initialCode);
       })
-      .catch((error) => console.error('❌ Error fetching code block:', error));
+      .catch((error) => console.error('Error fetching code block:', error));
 
-    socket.on('roleAssigned', (assignedRole) => {
-      console.log(`🎭 FINAL Role assigned to this user: ${assignedRole}`);
-      setRole(assignedRole);
-    });
-
-    socket.on('updateStudentCount', (count) => {
-      console.log(`👥 Student count updated: ${count}`);
-      setStudentCount(count);
-    });
-
+    socket.on('roleAssigned', setRole);
+    socket.on('updateStudentCount', setStudentCount);
     socket.on('codeUpdate', (updatedCode) => {
-      console.log(`✍️ Received code update`);
       setCode(updatedCode);
       if (codeBlock && updatedCode.trim() === codeBlock.solution.trim()) {
         setIsCorrect(true);
@@ -57,10 +43,7 @@ const CodeBlockPage = () => {
       }
     });
 
-    socket.on('mentorLeft', () => {
-      console.log('🚨 Mentor left the room. Redirecting...');
-      navigate('/');
-    });
+    socket.on('mentorLeft', () => navigate('/'));
 
     return () => {
       socket.off('codeUpdate');
@@ -68,14 +51,12 @@ const CodeBlockPage = () => {
       socket.off('updateStudentCount');
       socket.off('mentorLeft');
       socket.emit('leaveRoom', id);
-      console.log(`🏃‍♂️ Emitted leaveRoom for room ID: ${id}`);
     };
   }, [id]);
 
   const handleCodeChange = (newCode) => {
     setCode(newCode);
     socket.emit('codeChange', { id, newCode });
-    console.log(`📤 Emitted codeChange`);
 
     if (codeBlock && newCode.trim() === codeBlock.solution.trim()) {
       setIsCorrect(true);
