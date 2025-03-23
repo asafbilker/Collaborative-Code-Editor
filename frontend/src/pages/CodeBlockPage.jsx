@@ -36,8 +36,8 @@ const CodeBlockPage = () => {
       .catch((error) => console.error('Error fetching code block:', error));
 
     socket.on('roleAssigned', (assignedRole) => {
-      console.log(`Role assigned to this user: ${assignedRole}`);
-      setRole(assignedRole);
+        console.log(`🎭 FINAL Role assigned to this user: ${assignedRole}`);
+        setRole(assignedRole);
     });
 
     socket.on('updateStudentCount', (count) => {
