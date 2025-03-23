@@ -24,11 +24,6 @@ io.on('connection', (socket) => {
     socket.on('joinRoom', (id) => {
         console.log(`💥 joinRoom START | socket: ${socket.id} | room: ${id}`);
 
-        // 🧪 Debug logs
-        console.log(`🧪 Existing users in room ${id}:`, roomUsers[id]);
-        console.log(`🧪 Existing mentor in room ${id}:`, roomMentors[id]);
-        console.log(`🧪 Active sockets:`, Array.from(io.sockets.sockets.keys()));
-
         // Initialize room
         if (!roomUsers[id]) roomUsers[id] = [];
 
@@ -45,6 +40,10 @@ io.on('connection', (socket) => {
         }
 
         // 🧠 Assign role
+        console.log(`🧪 Checking mentor assignment...`);
+        console.log(`🧪 Is roomMentors[${id}] set?`, !!roomMentors[id]);
+        console.log(`🧪 Is mentor socket still active?`, roomMentors[id] && io.sockets.sockets.has(roomMentors[id]));
+
         if (!roomMentors[id]) {
             roomMentors[id] = socket.id;
             io.to(socket.id).emit('roleAssigned', 'Mentor');
@@ -111,14 +110,13 @@ io.on('connection', (socket) => {
                     delete roomMentors[roomId];
                     delete roomUsers[roomId];
                     delete currentCode[roomId];
-                    return; // Stop further processing
+                    return;
                 }
 
                 // 🟢 If student left, update count
                 const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
                 io.to(roomId).emit('updateStudentCount', studentCount);
 
-                // 🧹 If now empty, clean up
                 if (users.length === 0) {
                     delete roomUsers[roomId];
                     delete currentCode[roomId];
