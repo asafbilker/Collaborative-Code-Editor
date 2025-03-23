@@ -4,7 +4,11 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { io } from 'socket.io-client';
 
-const socket = io('https://moveo-project-v3tk.onrender.com');
+const socket = io(
+    import.meta.env.MODE === 'development'
+      ? 'http://localhost:5000'
+      : 'https://moveo-project-v3tk.onrender.com'
+  );  
 
 const CodeBlockPage = () => {
     const { id } = useParams();
