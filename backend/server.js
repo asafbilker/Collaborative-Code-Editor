@@ -44,11 +44,14 @@ io.on('connection', (socket) => {
         console.log(`👥 User ${socket.id} joined room: ${id}`);
         console.log(`📍 Current users in room:`, roomUsers[id]);
     
-        // ✅ Clean up stale mentor if their socket is gone
-        if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
-            console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
-            delete roomMentors[id];
-        }
+        if (roomMentors[id]) {
+            const stillConnected = roomUsers[id].includes(roomMentors[id]);
+            console.log(`🧪 Checking mentor validity. Mentor: ${roomMentors[id]}, stillConnected: ${stillConnected}`);
+            if (!stillConnected) {
+                console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
+                delete roomMentors[id];
+            }
+        }        
     
         // ✅ Assign role
         if (!roomMentors[id]) {
