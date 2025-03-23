@@ -4,7 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000'); // Connect to the backend WebSocket server
+const socket = io('https://moveo-project-v3tk.onrender.com');
 
 const CodeBlockPage = () => {
     const { id } = useParams();
@@ -20,7 +20,7 @@ const CodeBlockPage = () => {
         socket.emit('joinRoom', id);
         console.log(`Joined room: ${id}`);
 
-        fetch(`http://localhost:5000/api/codeblocks/${id}`)
+        fetch(`https://moveo-project-v3tk.onrender.com/api/codeblocks/${id}`)
             .then(response => response.json())
             .then(data => {
                 setCodeBlock(data);
