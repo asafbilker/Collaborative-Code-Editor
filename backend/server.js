@@ -17,12 +17,18 @@ const io = new Server(server, {
 // 🧠 Track mentor per room
 const roomMentors = {};
 const roomUsers = {};
-const currentCode = {}; // 🔸 Track live code per room
+const currentCode = {};
 
 io.on('connection', (socket) => {
     console.log(`A user connected: ${socket.id}`);
 
     socket.on('joinRoom', (id) => {
+        console.log(`💥 joinRoom called by ${socket.id} for room ${id}`);
+        console.log('BEFORE:', {
+            roomUsers: roomUsers[id],
+            roomMentor: roomMentors[id],
+        });
+
         if (!roomUsers[id]) {
             roomUsers[id] = [];
         }
@@ -33,29 +39,59 @@ io.on('connection', (socket) => {
 
         socket.join(id);
         console.log(`User ${socket.id} joined room: ${id}`);
-        console.log(`Current users in room:`, roomUsers[id]);
 
-        if (roomUsers[id].length === 1) {
-            roomMentors[id] = socket.id;
-            io.to(socket.id).emit('roleAssigned', 'Mentor');
-            console.log(`Assigned Mentor: ${socket.id}`);
-        } else {
-            io.to(socket.id).emit('roleAssigned', 'Student');
-            console.log(`Assigned Student: ${socket.id}`);
+        // ✅ Clean up stale mentor if their socket is gone
+        if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
+            console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
+            delete roomMentors[id];
         }
 
-        // 🔹 Send current code to newly joined student
+        // ✅ Assign role
+        if (!roomMentors[id]) {
+            roomMentors[id] = socket.id;
+            io.to(socket.id).emit('roleAssigned', 'Mentor');
+            console.log(`✅ Assigned Mentor: ${socket.id}`);
+        } else {
+            io.to(socket.id).emit('roleAssigned', 'Student');
+            console.log(`🟢 Assigned Student: ${socket.id}`);
+        }
+
+        // Send current code to new student (if exists)
         if (currentCode[id]) {
             io.to(socket.id).emit('codeUpdate', currentCode[id]);
         }
 
-        // 🔸 Broadcast updated student count
+        // Update student count
         const studentCount = roomUsers[id].filter(uid => uid !== roomMentors[id]).length;
         io.to(id).emit('updateStudentCount', studentCount);
+
+        console.log('AFTER:', {
+            roomUsers: roomUsers[id],
+            roomMentor: roomMentors[id],
+            studentCount
+        });
+    });
+
+    socket.on('leaveRoom', (roomId) => {
+        console.log(`🚪 leaveRoom received from ${socket.id} for room ${roomId}`);
+        if (roomUsers[roomId]) {
+            roomUsers[roomId] = roomUsers[roomId].filter(uid => uid !== socket.id);
+
+            if (roomMentors[roomId] === socket.id) {
+                delete roomMentors[roomId];
+                console.log(`🧹 Mentor ${socket.id} removed from room ${roomId}`);
+            }
+
+            if (roomUsers[roomId].length === 0) {
+                console.log(`🧼 Room ${roomId} now empty. Cleaning up.`);
+                delete roomUsers[roomId];
+                delete currentCode[roomId];
+            }
+        }
     });
 
     socket.on('codeChange', ({ id, newCode }) => {
-        currentCode[id] = newCode; // 🔸 Save new code for future joins
+        currentCode[id] = newCode;
         socket.to(id).emit('codeUpdate', newCode);
     });
 
@@ -69,6 +105,7 @@ io.on('connection', (socket) => {
             if (index !== -1) {
                 users.splice(index, 1);
 
+                // 🧠 If mentor left
                 if (roomMentors[roomId] === socket.id) {
                     console.log(`Mentor left room ${roomId}, kicking students...`);
                     io.to(roomId).emit('mentorLeft');
@@ -76,11 +113,12 @@ io.on('connection', (socket) => {
                     delete currentCode[roomId];
                     delete roomUsers[roomId];
                 } else {
-                    // 🔸 Update student count when a student leaves
+                    // Student left, update count
                     const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
                     io.to(roomId).emit('updateStudentCount', studentCount);
                 }
 
+                // Cleanup empty room
                 if (users.length === 0) {
                     delete roomUsers[roomId];
                     delete currentCode[roomId];
