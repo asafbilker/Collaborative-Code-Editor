@@ -23,22 +23,27 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (id) => {
         console.log(`💥 joinRoom START | socket: ${socket.id} | room: ${id}`);
-    
+
+        // 🧪 Debug logs
+        console.log(`🧪 Existing users in room ${id}:`, roomUsers[id]);
+        console.log(`🧪 Existing mentor in room ${id}:`, roomMentors[id]);
+        console.log(`🧪 Active sockets:`, Array.from(io.sockets.sockets.keys()));
+
         // Initialize room
         if (!roomUsers[id]) roomUsers[id] = [];
-    
+
         // 🧹 Clean ghost users first
         roomUsers[id] = roomUsers[id].filter(uid => io.sockets.sockets.has(uid));
         if (roomMentors[id] && !io.sockets.sockets.has(roomMentors[id])) {
             console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
             delete roomMentors[id];
         }
-    
+
         // ➕ Add user to room list
         if (!roomUsers[id].includes(socket.id)) {
             roomUsers[id].push(socket.id);
         }
-    
+
         // 🧠 Assign role
         if (!roomMentors[id]) {
             roomMentors[id] = socket.id;
@@ -48,24 +53,24 @@ io.on('connection', (socket) => {
             io.to(socket.id).emit('roleAssigned', 'Student');
             console.log(`🧠 FINAL Role assigned to this user: Student`);
         }
-    
+
         // ✅ Join actual socket room
         socket.join(id);
-    
+
         console.log('🔍 AFTER JOIN:', {
             roomUsers: roomUsers[id],
             roomMentor: roomMentors[id],
             currentCode: currentCode[id],
         });
-    
+
         if (currentCode[id]) {
             io.to(socket.id).emit('codeUpdate', currentCode[id]);
         }
-    
+
         const studentCount = roomUsers[id].filter(uid => uid !== roomMentors[id]).length;
         io.to(id).emit('updateStudentCount', studentCount);
     });
-       
+
     socket.on('leaveRoom', (roomId) => {
         console.log(`🚪 leaveRoom received from ${socket.id} for room ${roomId}`);
         if (roomUsers[roomId]) {
@@ -91,14 +96,14 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`❌ User ${socket.id} disconnected`);
-    
+
         for (const roomId in roomUsers) {
             const users = roomUsers[roomId];
             const index = users.indexOf(socket.id);
-    
+
             if (index !== -1) {
                 users.splice(index, 1);
-    
+
                 // 🔥 If mentor disconnected → kick whole room
                 if (roomMentors[roomId] === socket.id) {
                     console.log(`⚠️ Mentor left room ${roomId}. Kicking all users and resetting room...`);
@@ -108,21 +113,21 @@ io.on('connection', (socket) => {
                     delete currentCode[roomId];
                     return; // Stop further processing
                 }
-    
+
                 // 🟢 If student left, update count
                 const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
                 io.to(roomId).emit('updateStudentCount', studentCount);
-    
+
                 // 🧹 If now empty, clean up
                 if (users.length === 0) {
                     delete roomUsers[roomId];
                     delete currentCode[roomId];
                 }
-    
+
                 break;
             }
         }
-    });    
+    });
 });
 
 app.use(cors());
