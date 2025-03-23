@@ -24,13 +24,9 @@ const CodeBlockPage = () => {
             .then(response => response.json())
             .then(data => {
                 setCodeBlock(data);
-
-                // ⚠️ Don't setCode here. Wait for possible socket codeUpdate
-                // Instead, set initial fallback after short timeout (if no socket update arrives)
                 const timeout = setTimeout(() => {
                     setCode(prev => prev || data.initialCode);
-                }, 300); // short delay fallback
-
+                }, 300);
             })
             .catch(error => console.error('Error fetching code block:', error));
 
@@ -81,10 +77,35 @@ const CodeBlockPage = () => {
     if (!codeBlock) return <h1>Loading...</h1>;
 
     return (
-        <div>
-            <h1>{codeBlock.title}</h1>
-            {role && <p><strong>Role:</strong> {role}</p>}
-            <p>Students in room: {studentCount}</p>
+        <div style={{
+            maxWidth: '800px',
+            margin: '40px auto',
+            padding: '20px',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+            <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>{codeBlock.title}</h1>
+            
+            {role && (
+                <p style={{ textAlign: 'center', fontSize: '18px' }}>
+                    <strong>Role:</strong>{' '}
+                    <span style={{
+                        color: '#fff',
+                        backgroundColor: role === 'Mentor' ? '#007bff' : '#28a745',
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        fontWeight: 'bold'
+                    }}>
+                        {role}
+                    </span>
+                </p>
+            )}
+            
+            <p style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>
+                Students in room: <strong>{studentCount}</strong>
+            </p>
+
             <CodeMirror
                 value={code}
                 height="300px"
@@ -92,7 +113,12 @@ const CodeBlockPage = () => {
                 onChange={handleCodeChange}
                 readOnly={role === 'Mentor'}
             />
-            {isCorrect && <h1 style={{ fontSize: '50px', color: 'green' }}>😃</h1>}
+
+            {isCorrect && (
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <h1 style={{ fontSize: '70px', color: 'green' }}>😃</h1>
+                </div>
+            )}
         </div>
     );
 };
