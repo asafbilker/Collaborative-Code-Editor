@@ -20,13 +20,14 @@ const roomUsers = {};
 const currentCode = {};
 
 io.on('connection', (socket) => {
-    console.log(`A user connected: ${socket.id}`);
+    console.log(`🧩 A user connected: ${socket.id}`);
 
     socket.on('joinRoom', (id) => {
-        console.log(`💥 joinRoom called by ${socket.id} for room ${id}`);
-        console.log('BEFORE:', {
+        console.log(`💥 joinRoom START | socket: ${socket.id} | room: ${id}`);
+        console.log('🔍 BEFORE JOIN:', {
             roomUsers: roomUsers[id],
             roomMentor: roomMentors[id],
+            currentCode: currentCode[id],
         });
 
         if (!roomUsers[id]) {
@@ -38,7 +39,7 @@ io.on('connection', (socket) => {
         }
 
         socket.join(id);
-        console.log(`User ${socket.id} joined room: ${id}`);
+        console.log(`👥 User ${socket.id} joined room: ${id}`);
 
         // ✅ Clean up stale mentor if their socket is gone
         if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
@@ -65,9 +66,9 @@ io.on('connection', (socket) => {
         const studentCount = roomUsers[id].filter(uid => uid !== roomMentors[id]).length;
         io.to(id).emit('updateStudentCount', studentCount);
 
-        console.log('AFTER:', {
-            roomUsers: roomUsers[id],
+        console.log('📊 AFTER JOIN:', {
             roomMentor: roomMentors[id],
+            roomUsers: roomUsers[id],
             studentCount
         });
     });
@@ -96,7 +97,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`User ${socket.id} disconnected`);
+        console.log(`❌ User ${socket.id} disconnected`);
 
         for (const roomId in roomUsers) {
             const users = roomUsers[roomId];
@@ -107,7 +108,7 @@ io.on('connection', (socket) => {
 
                 // 🧠 If mentor left
                 if (roomMentors[roomId] === socket.id) {
-                    console.log(`Mentor left room ${roomId}, kicking students...`);
+                    console.log(`⚠️ Mentor left room ${roomId}, kicking students...`);
                     io.to(roomId).emit('mentorLeft');
                     delete roomMentors[roomId];
                     delete currentCode[roomId];
@@ -139,16 +140,16 @@ app.get('/', (req, res) => {
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
-        console.log('Connected to MongoDB');
-        console.log('Database name:', mongoose.connection.db.databaseName);
+        console.log('✅ Connected to MongoDB');
+        console.log('🧾 Database name:', mongoose.connection.db.databaseName);
     })
     .catch(err => {
-        console.error('MongoDB connection error:', err);
+        console.error('❌ MongoDB connection error:', err);
     });
 
 app.use('/api/codeblocks', require('./routes/codeBlocks'));
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });
