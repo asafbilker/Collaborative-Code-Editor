@@ -23,25 +23,34 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (id) => {
         console.log(`💥 joinRoom START | socket: ${socket.id} | room: ${id}`);
-
+        console.log('🔍 BEFORE JOIN:', {
+            roomUsers: roomUsers[id],
+            roomMentor: roomMentors[id],
+            currentCode: currentCode[id],
+        });
+    
         if (!roomUsers[id]) {
             roomUsers[id] = [];
         }
-
-        // Clean up disconnected sockets in roomUsers
-        roomUsers[id] = roomUsers[id].filter(sid => io.sockets.sockets.get(sid));
+    
+        // ✅ Clean out disconnected (stale) users
+        roomUsers[id] = roomUsers[id].filter(uid => io.sockets.sockets.has(uid));
+    
+        if (!roomUsers[id].includes(socket.id)) {
+            roomUsers[id].push(socket.id);
+        }
+    
+        socket.join(id);
+        console.log(`👥 User ${socket.id} joined room: ${id}`);
+        console.log(`📍 Current users in room:`, roomUsers[id]);
+    
+        // ✅ Clean up stale mentor if their socket is gone
         if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
             console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
             delete roomMentors[id];
         }
-
-        if (!roomUsers[id].includes(socket.id)) {
-            roomUsers[id].push(socket.id);
-        }
-
-        socket.join(id);
-        console.log(`👥 User ${socket.id} joined room: ${id}`);
-
+    
+        // ✅ Assign role
         if (!roomMentors[id]) {
             roomMentors[id] = socket.id;
             io.to(socket.id).emit('roleAssigned', 'Mentor');
@@ -50,20 +59,22 @@ io.on('connection', (socket) => {
             io.to(socket.id).emit('roleAssigned', 'Student');
             console.log(`🟢 Assigned Student: ${socket.id}`);
         }
-
+    
+        // Send current code to new student (if exists)
         if (currentCode[id]) {
             io.to(socket.id).emit('codeUpdate', currentCode[id]);
         }
-
+    
+        // Update student count
         const studentCount = roomUsers[id].filter(uid => uid !== roomMentors[id]).length;
         io.to(id).emit('updateStudentCount', studentCount);
-
+    
         console.log('📊 AFTER JOIN:', {
             roomMentor: roomMentors[id],
             roomUsers: roomUsers[id],
             studentCount
         });
-    });
+    });    
 
     socket.on('leaveRoom', (roomId) => {
         console.log(`🚪 leaveRoom received from ${socket.id} for room ${roomId}`);
