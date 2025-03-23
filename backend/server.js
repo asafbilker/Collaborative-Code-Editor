@@ -29,8 +29,15 @@ io.on('connection', (socket) => {
 
         // 🧹 Clean ghost users first
         roomUsers[id] = roomUsers[id].filter(uid => io.sockets.sockets.has(uid));
+
         if (roomMentors[id] && !io.sockets.sockets.has(roomMentors[id])) {
             console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
+            delete roomMentors[id];
+        }
+
+        // 🤖 If all users are gone after cleanup, treat it as new room
+        if (roomUsers[id].length === 0) {
+            console.log(`🧼 Room ${id} was effectively empty. Resetting mentor.`);
             delete roomMentors[id];
         }
 
