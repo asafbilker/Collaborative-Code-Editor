@@ -91,34 +91,38 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`❌ User ${socket.id} disconnected`);
-
+    
         for (const roomId in roomUsers) {
             const users = roomUsers[roomId];
             const index = users.indexOf(socket.id);
-
+    
             if (index !== -1) {
                 users.splice(index, 1);
-
+    
+                // 🔥 If mentor disconnected → kick whole room
                 if (roomMentors[roomId] === socket.id) {
-                    console.log(`⚠️ Mentor left room ${roomId}, kicking students...`);
+                    console.log(`⚠️ Mentor left room ${roomId}. Kicking all users and resetting room...`);
                     io.to(roomId).emit('mentorLeft');
                     delete roomMentors[roomId];
-                    delete currentCode[roomId];
                     delete roomUsers[roomId];
-                } else {
-                    const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
-                    io.to(roomId).emit('updateStudentCount', studentCount);
+                    delete currentCode[roomId];
+                    return; // Stop further processing
                 }
-
+    
+                // 🟢 If student left, update count
+                const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
+                io.to(roomId).emit('updateStudentCount', studentCount);
+    
+                // 🧹 If now empty, clean up
                 if (users.length === 0) {
                     delete roomUsers[roomId];
                     delete currentCode[roomId];
                 }
-
+    
                 break;
             }
         }
-    });
+    });    
 });
 
 app.use(cors());
