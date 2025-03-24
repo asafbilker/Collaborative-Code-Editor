@@ -20,6 +20,7 @@ const CodeBlockPage = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [role, setRole] = useState(null);
   const [studentCount, setStudentCount] = useState(0);
+  const [showSolution, setShowSolution] = useState(false); // 👈 NEW
 
   useEffect(() => {
     socket.emit('joinRoom', id);
@@ -80,6 +81,12 @@ const CodeBlockPage = () => {
     >
       <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>{codeBlock.title}</h1>
 
+      {codeBlock.description && (
+        <p style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px', color: '#555' }}>
+          {codeBlock.description}
+        </p>
+      )}
+
       {role && (
         <p style={{ textAlign: 'center', fontSize: '18px' }}>
           <strong>Role:</strong>{' '}
@@ -100,6 +107,12 @@ const CodeBlockPage = () => {
       <p style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>
         Students in room: <strong>{studentCount}</strong>
       </p>
+      
+      {isCorrect && (
+        <div style={{ textAlign: 'center', margin: '30px 0' }}>
+            <h1 style={{ fontSize: '70px', color: 'green' }}>😃</h1>
+        </div>
+      )}
 
       <CodeMirror
         value={code}
@@ -109,11 +122,42 @@ const CodeBlockPage = () => {
         readOnly={role === 'Mentor'}
       />
 
-      {isCorrect && (
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <h1 style={{ fontSize: '70px', color: 'green' }}>😃</h1>
-        </div>
-      )}
+      {/* ✅ Show/Hide Solution */}
+      <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <button
+          onClick={() => setShowSolution((prev) => !prev)}
+          style={{
+            padding: '8px 16px',
+            fontSize: '16px',
+            backgroundColor: '#6c63ff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          {showSolution ? 'Hide Solution' : 'Show Solution'}
+        </button>
+
+        {showSolution && codeBlock && (
+          <div style={{ marginTop: '20px', textAlign: 'left' }}>
+            <p style={{ fontSize: '14px', color: '#666' }}>
+              Paste the following code exactly in the editor to trigger the smiley:
+            </p>
+            <pre
+              style={{
+                backgroundColor: '#f4f4f4',
+                padding: '15px',
+                borderRadius: '8px',
+                overflowX: 'auto',
+                fontSize: '14px',
+              }}
+            >
+              <code>{codeBlock.solution}</code>
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

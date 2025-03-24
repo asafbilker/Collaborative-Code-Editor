@@ -8,14 +8,41 @@ const API_BASE_URL =
 
 const Lobby = () => {
   const [codeBlocks, setCodeBlocks] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newBlock, setNewBlock] = useState({
+    title: '',
+    initialCode: '',
+    solution: '',
+    description: '',
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/codeblocks`)
-      .then((response) => response.json())
-      .then((data) => setCodeBlocks(data))
-      .catch((error) => console.error('Error fetching code blocks:', error));
+      .then((res) => res.json())
+      .then(setCodeBlocks)
+      .catch((err) => console.error('Error fetching code blocks:', err));
   }, []);
+
+  const handleAddBlock = async (e) => {
+    e.preventDefault();
+
+    const response = await fetch(`${API_BASE_URL}/api/codeblocks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newBlock),
+    });
+
+    if (response.ok) {
+      const createdBlock = await response.json();
+      setCodeBlocks((prev) => [...prev, createdBlock]);
+      setNewBlock({ title: '', initialCode: '', solution: '', description: '' });
+      setShowForm(false);
+    } else {
+      console.error('Failed to create code block');
+    }
+  };
 
   return (
     <div
@@ -26,9 +53,57 @@ const Lobby = () => {
         textAlign: 'center',
       }}
     >
-      <h1 style={{ fontSize: '36px', marginBottom: '40px' }}>
-        Choose a Code Block
-      </h1>
+      <h1 style={{ fontSize: '36px', marginBottom: '20px' }}>Choose a Code Block</h1>
+
+      <button
+        onClick={() => setShowForm(!showForm)}
+        style={{
+          marginBottom: '30px',
+          padding: '10px 20px',
+          fontSize: '16px',
+          borderRadius: '8px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        {showForm ? 'Cancel' : '➕ Add New Code Block'}
+      </button>
+
+      {showForm && (
+        <form onSubmit={handleAddBlock} style={{ marginBottom: '30px', textAlign: 'left' }}>
+          {['title', 'description', 'initial Code', 'solution'].map((field) => (
+            <div key={field} style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', fontWeight: 'bold' }}>
+                {field.charAt(0).toUpperCase() + field.slice(1)}:
+              </label>
+              <textarea
+                rows={field === 'description' ? 2 : 4}
+                required
+                value={newBlock[field]}
+                onChange={(e) => setNewBlock({ ...newBlock, [field]: e.target.value })}
+                style={{ width: '100%', padding: '8px', borderRadius: '5px' }}
+              />
+            </div>
+          ))}
+          <button
+            type="submit"
+            style={{
+              marginTop: '10px',
+              padding: '10px 20px',
+              fontSize: '16px',
+              borderRadius: '8px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            ✅ Create Block
+          </button>
+        </form>
+      )}
 
       <div
         style={{

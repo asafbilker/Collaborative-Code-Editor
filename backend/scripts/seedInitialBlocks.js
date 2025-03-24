@@ -12,21 +12,25 @@ const initialBlocks = [
     title: 'Factorial Function',
     initialCode: `function factorial(n) {\n  // TODO: implement\n}`,
     solution: `function factorial(n) {\n  if (n === 0) return 1;\n  return n * factorial(n - 1);\n}`,
+    description: 'Implement a function that returns the factorial of a given number n.',
   },
   {
     title: 'Find Maximum',
     initialCode: `function findMax(arr) {\n  // TODO: implement\n}`,
     solution: `function findMax(arr) {\n  return Math.max(...arr);\n}`,
+    description: 'Write a function that receives an array and returns its largest number.',
   },
   {
     title: 'Reverse String',
     initialCode: `function reverseString(str) {\n  // TODO: implement\n}`,
     solution: `function reverseString(str) {\n  return str.split('').reverse().join('');\n}`,
+    description: 'Create a function that returns the reverse of a given string.',
   },
   {
     title: 'Check Prime',
     initialCode: `function isPrime(n) {\n  // TODO: implement\n}`,
     solution: `function isPrime(n) {\n  if (n <= 1) return false;\n  for (let i = 2; i <= Math.sqrt(n); i++) {\n    if (n % i === 0) return false;\n  }\n  return true;\n}`,
+    description: 'Build a function that checks whether a given number is a prime number.',
   },
 ];
 
@@ -37,7 +41,7 @@ mongoose
     await CodeBlock.deleteMany({});
     console.log('🧹 Old blocks cleared');
     await CodeBlock.insertMany(initialBlocks);
-    console.log('✅ Initial blocks inserted!');
+    console.log('✅ Initial blocks inserted with descriptions!');
     process.exit(0);
   })
   .catch((err) => {
