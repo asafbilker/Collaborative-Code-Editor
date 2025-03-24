@@ -41,7 +41,7 @@
   color: #888;
 }
 
-/* Ensure code inside CodeMirror is left-aligned */
+/* ensure code inside CodeMirror is left aligned */
 .cm-editor {
   text-align: left !important;
   justify-content: flex-start !important;

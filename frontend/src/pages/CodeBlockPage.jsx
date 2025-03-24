@@ -4,6 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { io } from 'socket.io-client';
 
+// use local server in dev, live server in prod
 const API_BASE_URL =
   import.meta.env.MODE === 'development'
     ? 'http://localhost:5000'
@@ -12,19 +13,20 @@ const API_BASE_URL =
 const socket = io(API_BASE_URL);
 
 const CodeBlockPage = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // get room id from URL
   const navigate = useNavigate();
 
-  const [codeBlock, setCodeBlock] = useState(null);
-  const [code, setCode] = useState('');
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [role, setRole] = useState(null);
-  const [studentCount, setStudentCount] = useState(0);
-  const [showSolution, setShowSolution] = useState(false); // 👈 NEW
+  const [codeBlock, setCodeBlock] = useState(null); // holds the current block info
+  const [code, setCode] = useState(''); // live code in editor
+  const [isCorrect, setIsCorrect] = useState(false); // if code matches solution
+  const [role, setRole] = useState(null); // 'Mentor' or 'Student'
+  const [studentCount, setStudentCount] = useState(0); // number of students in room
+  const [showSolution, setShowSolution] = useState(false); // show solution option
 
   useEffect(() => {
-    socket.emit('joinRoom', id);
+    socket.emit('joinRoom', id); // enter room
 
+    // gets code block data from db
     fetch(`${API_BASE_URL}/api/codeblocks/${id}`)
       .then((response) => response.json())
       .then((data) => {
@@ -33,6 +35,7 @@ const CodeBlockPage = () => {
       })
       .catch((error) => console.error('Error fetching code block:', error));
 
+    // setup of the sockets
     socket.on('roleAssigned', setRole);
     socket.on('updateStudentCount', setStudentCount);
     socket.on('codeUpdate', (updatedCode) => {
@@ -44,20 +47,20 @@ const CodeBlockPage = () => {
       }
     });
 
-    socket.on('mentorLeft', () => navigate('/'));
+    socket.on('mentorLeft', () => navigate('/')); // if mentor leaves
 
     return () => {
       socket.off('codeUpdate');
       socket.off('roleAssigned');
       socket.off('updateStudentCount');
       socket.off('mentorLeft');
-      socket.emit('leaveRoom', id);
+      socket.emit('leaveRoom', id); // clean when exit
     };
   }, [id]);
 
   const handleCodeChange = (newCode) => {
     setCode(newCode);
-    socket.emit('codeChange', { id, newCode });
+    socket.emit('codeChange', { id, newCode }); // send change to others
 
     if (codeBlock && newCode.trim() === codeBlock.solution.trim()) {
       setIsCorrect(true);
@@ -79,14 +82,17 @@ const CodeBlockPage = () => {
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       }}
     >
+      {/* block title */}
       <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>{codeBlock.title}</h1>
 
+      {/* option for block description */}
       {codeBlock.description && (
         <p style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px', color: '#555' }}>
           {codeBlock.description}
         </p>
       )}
 
+      {/* show role (mentor/student) */}
       {role && (
         <p style={{ textAlign: 'center', fontSize: '18px' }}>
           <strong>Role:</strong>{' '}
@@ -104,16 +110,19 @@ const CodeBlockPage = () => {
         </p>
       )}
 
+      {/* student count */}
       <p style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>
         Students in room: <strong>{studentCount}</strong>
       </p>
-      
+
+      {/* success smiley if correct */}
       {isCorrect && (
         <div style={{ textAlign: 'center', margin: '30px 0' }}>
-            <h1 style={{ fontSize: '70px', color: 'green' }}>😃</h1>
+          <h1 style={{ fontSize: '70px', color: 'green' }}>😃</h1>
         </div>
       )}
 
+      {/* main code editor */}
       <CodeMirror
         value={code}
         height="300px"
@@ -122,7 +131,7 @@ const CodeBlockPage = () => {
         readOnly={role === 'Mentor'}
       />
 
-      {/* ✅ Show/Hide Solution */}
+      {/* show solution view */}
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <button
           onClick={() => setShowSolution((prev) => !prev)}
@@ -139,10 +148,11 @@ const CodeBlockPage = () => {
           {showSolution ? 'Hide Solution' : 'Show Solution'}
         </button>
 
+        {/* solution data */}
         {showSolution && codeBlock && (
           <div style={{ marginTop: '20px', textAlign: 'left' }}>
             <p style={{ fontSize: '14px', color: '#666' }}>
-              Paste the following code exactly in the editor to trigger the smiley:
+              paste the following code exactly in the editor to trigger the smiley:
             </p>
             <pre
               style={{

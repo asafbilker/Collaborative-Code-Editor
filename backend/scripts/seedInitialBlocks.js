@@ -1,12 +1,13 @@
 /**
  * Populates the database with 4 initial code blocks.
- * Blocks can also be created manually via MongoDB Atlas as per assignment instructions.
+ * blocks can also be created manually via MongoDB Atlas as per assignment instructions
  */
 
-require('dotenv').config();
-const mongoose = require('mongoose');
-const CodeBlock = require('../models/CodeBlock');
+require('dotenv').config(); // load env variables
+const mongoose = require('mongoose'); // db connection
+const CodeBlock = require('../models/CodeBlock'); // model for code block
 
+// defined code blocks for seeding
 const initialBlocks = [
   {
     title: 'Factorial Function',
@@ -35,16 +36,16 @@ const initialBlocks = [
 ];
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI) // connect to mongo
   .then(async () => {
-    console.log('✅ Connected to DB');
-    await CodeBlock.deleteMany({});
-    console.log('🧹 Old blocks cleared');
-    await CodeBlock.insertMany(initialBlocks);
-    console.log('✅ Initial blocks inserted with descriptions!');
-    process.exit(0);
+    console.log('Connected to DB');
+    await CodeBlock.deleteMany({}); // clear old blocks
+    console.log('Old blocks cleared');
+    await CodeBlock.insertMany(initialBlocks); // insert new blocks
+    console.log('Initial blocks inserted with descriptions');
+    process.exit(0); // exit script
   })
   .catch((err) => {
-    console.error('❌ DB connection error:', err);
+    console.error('DB connection error:', err);
     process.exit(1);
   });

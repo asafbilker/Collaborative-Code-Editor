@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// set API endpoint based on environment
 const API_BASE_URL =
   import.meta.env.MODE === 'development'
     ? 'http://localhost:5000'
     : 'https://moveo-project-v3tk.onrender.com';
 
 const Lobby = () => {
-  const [codeBlocks, setCodeBlocks] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [codeBlocks, setCodeBlocks] = useState([]); // stores all code blocks
+  const [showForm, setShowForm] = useState(false); // show new block form
   const [newBlock, setNewBlock] = useState({
     title: '',
     initialCode: '',
@@ -18,6 +19,7 @@ const Lobby = () => {
 
   const navigate = useNavigate();
 
+  // load code blocks 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/codeblocks`)
       .then((res) => res.json())
@@ -25,6 +27,7 @@ const Lobby = () => {
       .catch((err) => console.error('Error fetching code blocks:', err));
   }, []);
 
+  // handle form submit to create new block
   const handleAddBlock = async (e) => {
     e.preventDefault();
 
@@ -36,9 +39,9 @@ const Lobby = () => {
 
     if (response.ok) {
       const createdBlock = await response.json();
-      setCodeBlocks((prev) => [...prev, createdBlock]);
+      setCodeBlocks((prev) => [...prev, createdBlock]); // add to UI
       setNewBlock({ title: '', initialCode: '', solution: '', description: '' });
-      setShowForm(false);
+      setShowForm(false); // close form
     } else {
       console.error('Failed to create code block');
     }
@@ -55,6 +58,7 @@ const Lobby = () => {
     >
       <h1 style={{ fontSize: '36px', marginBottom: '20px' }}>Choose a Code Block</h1>
 
+      {/* show form for adding new blocks */}
       <button
         onClick={() => setShowForm(!showForm)}
         style={{
@@ -71,6 +75,7 @@ const Lobby = () => {
         {showForm ? 'Cancel' : '➕ Add New Code Block'}
       </button>
 
+      {/* show new block form if pressed */}
       {showForm && (
         <form onSubmit={handleAddBlock} style={{ marginBottom: '30px', textAlign: 'left' }}>
           {['title', 'description', 'initial Code', 'solution'].map((field) => (
@@ -105,6 +110,7 @@ const Lobby = () => {
         </form>
       )}
 
+      {/* show code block list */}
       <div
         style={{
           maxHeight: '60vh',

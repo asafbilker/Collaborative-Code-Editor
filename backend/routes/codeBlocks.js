@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const CodeBlock = require('../models/CodeBlock');
 
-// Get all code blocks (only title)
+// return all code block titles for the lobby
 router.get('/', async (req, res) => {
   try {
     const codeBlocks = await CodeBlock.find({}, 'title');
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get a specific code block by ID
+// return full block data when user enters a page
 router.get('/:id', async (req, res) => {
   try {
     const codeBlock = await CodeBlock.findById(req.params.id);
@@ -23,7 +23,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ✅ POST a new code block
+// used when adding new block from lobby
 router.post('/', async (req, res) => {
   const { title, initialCode, solution, description } = req.body;
 
