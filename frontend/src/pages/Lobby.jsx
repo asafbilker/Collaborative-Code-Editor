@@ -18,17 +18,57 @@ const Lobby = () => {
   }, []);
 
   return (
-    <div>
-      <h1>Choose a Code Block</h1>
-      <ul>
-        {codeBlocks.map((block) => (
-          <li key={block._id}>
-            <button onClick={() => navigate(`/codeblock/${block._id}`)}>
+    <div
+      style={{
+        padding: '40px 20px',
+        maxWidth: '1000px',
+        margin: '0 auto',
+        textAlign: 'center',
+      }}
+    >
+      <h1 style={{ fontSize: '36px', marginBottom: '40px' }}>
+        Choose a Code Block
+      </h1>
+
+      <div
+        style={{
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          paddingRight: '5px',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '20px',
+          }}
+        >
+          {codeBlocks.map((block) => (
+            <button
+              key={block._id}
+              onClick={() => navigate(`/codeblock/${block._id}`)}
+              style={{
+                padding: '15px 20px',
+                fontSize: '18px',
+                backgroundColor: '#f0f0f0',
+                border: '1px solid #ccc',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = '#e0e0e0')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = '#f0f0f0')
+              }
+            >
               {block.title}
             </button>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

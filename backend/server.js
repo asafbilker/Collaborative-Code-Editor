@@ -53,19 +53,34 @@ io.on('connection', (socket) => {
   });
 
   socket.on('leaveRoom', (roomId) => {
-    if (roomUsers[roomId]) {
-      roomUsers[roomId] = roomUsers[roomId].filter((uid) => uid !== socket.id);
-
-      if (roomMentors[roomId] === socket.id) {
-        delete roomMentors[roomId];
-      }
-
+    if (!roomUsers[roomId]) return;
+  
+    roomUsers[roomId] = roomUsers[roomId].filter((uid) => uid !== socket.id);
+  
+    const isMentor = roomMentors[roomId] === socket.id;
+  
+    if (isMentor) {
+      // Don't kick the mentor himself — just remove him
+      console.log(`🚪 Mentor ${socket.id} left room ${roomId}`);
+      delete roomMentors[roomId];
+  
+      // Kick students only
+      roomUsers[roomId].forEach((uid) => {
+        io.to(uid).emit('mentorLeft');
+      });
+  
+      delete roomUsers[roomId];
+      delete currentCode[roomId];
+    } else {
+      const studentCount = roomUsers[roomId].filter((uid) => uid !== roomMentors[roomId]).length;
+      io.to(roomId).emit('updateStudentCount', studentCount);
+  
       if (roomUsers[roomId].length === 0) {
         delete roomUsers[roomId];
         delete currentCode[roomId];
       }
     }
-  });
+  });  
 
   socket.on('codeChange', ({ id, newCode }) => {
     currentCode[id] = newCode;
