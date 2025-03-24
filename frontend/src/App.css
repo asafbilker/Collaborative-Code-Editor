@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+/* ensure code inside CodeMirror is left aligned */
+.cm-editor {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.cm-content {
+  text-align: left !important;
+}

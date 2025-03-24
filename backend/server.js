@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // load env variables
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -7,148 +7,142 @@ const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
+
+// setup socket.io with CORS
 const io = new Server(server, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
-    }
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
 });
 
-// 🧠 Track mentor per room
-const roomMentors = {};
-const roomUsers = {};
-const currentCode = {};
+// tracking per room
+const roomMentors = {}; // one mentor per room
+const roomUsers = {}; // all connected users
+const currentCode = {}; // code for each room
 
 io.on('connection', (socket) => {
-    console.log(`A user connected: ${socket.id}`);
 
-    socket.on('joinRoom', (id) => {
-        console.log(`💥 joinRoom called by ${socket.id} for room ${id}`);
-        console.log('BEFORE:', {
-            roomUsers: roomUsers[id],
-            roomMentor: roomMentors[id],
-        });
+  socket.on('joinRoom', (id) => {
+    if (!roomUsers[id]) roomUsers[id] = [];
 
-        if (!roomUsers[id]) {
-            roomUsers[id] = [];
+    // remove disconnected users
+    roomUsers[id] = roomUsers[id].filter((uid) => io.sockets.sockets.has(uid));
+    if (roomMentors[id] && !io.sockets.sockets.has(roomMentors[id])) {
+      delete roomMentors[id];
+    }
+
+    // add current socket to room
+    if (!roomUsers[id].includes(socket.id)) {
+      roomUsers[id].push(socket.id);
+    }
+
+    // assign roles: first is mentor
+    if (!roomMentors[id]) {
+      roomMentors[id] = socket.id;
+      io.to(socket.id).emit('roleAssigned', 'Mentor');
+    } else {
+      io.to(socket.id).emit('roleAssigned', 'Student');
+    }
+
+    socket.join(id); // join socket room
+
+    // sync latest code if exists
+    if (currentCode[id]) {
+      io.to(socket.id).emit('codeUpdate', currentCode[id]);
+    }
+
+    // show student count
+    const studentCount = roomUsers[id].filter((uid) => uid !== roomMentors[id]).length;
+    io.to(id).emit('updateStudentCount', studentCount);
+  });
+
+  socket.on('leaveRoom', (roomId) => {
+    if (!roomUsers[roomId]) return;
+  
+    roomUsers[roomId] = roomUsers[roomId].filter((uid) => uid !== socket.id);
+    const isMentor = roomMentors[roomId] === socket.id;
+  
+    if (isMentor) {
+      delete roomMentors[roomId];
+
+      // erase all students from room
+      roomUsers[roomId].forEach((uid) => {
+        io.to(uid).emit('mentorLeft');
+      });
+
+      delete roomUsers[roomId];
+      delete currentCode[roomId];
+    } else {
+      // update remaining student count
+      const studentCount = roomUsers[roomId].filter((uid) => uid !== roomMentors[roomId]).length;
+      io.to(roomId).emit('updateStudentCount', studentCount);
+
+      if (roomUsers[roomId].length === 0) {
+        delete roomUsers[roomId];
+        delete currentCode[roomId];
+      }
+    }
+  });  
+
+  // handle live code changes
+  socket.on('codeChange', ({ id, newCode }) => {
+    currentCode[id] = newCode;
+    socket.to(id).emit('codeUpdate', newCode);
+  });
+
+  // handle disconnects
+  socket.on('disconnect', () => {
+    for (const roomId in roomUsers) {
+      const users = roomUsers[roomId];
+      const index = users.indexOf(socket.id);
+
+      if (index !== -1) {
+        users.splice(index, 1);
+
+        if (roomMentors[roomId] === socket.id) {
+          io.to(roomId).emit('mentorLeft');
+          delete roomMentors[roomId];
+          delete roomUsers[roomId];
+          delete currentCode[roomId];
+          return;
         }
 
-        if (!roomUsers[id].includes(socket.id)) {
-            roomUsers[id].push(socket.id);
+        const studentCount = users.filter((uid) => uid !== roomMentors[roomId]).length;
+        io.to(roomId).emit('updateStudentCount', studentCount);
+
+        if (users.length === 0) {
+          delete roomUsers[roomId];
+          delete currentCode[roomId];
         }
 
-        socket.join(id);
-        console.log(`User ${socket.id} joined room: ${id}`);
-
-        // ✅ Clean up stale mentor if their socket is gone
-        if (roomMentors[id] && !roomUsers[id].includes(roomMentors[id])) {
-            console.log(`🧹 Removed stale mentor ${roomMentors[id]} from room ${id}`);
-            delete roomMentors[id];
-        }
-
-        // ✅ Assign role
-        if (!roomMentors[id]) {
-            roomMentors[id] = socket.id;
-            io.to(socket.id).emit('roleAssigned', 'Mentor');
-            console.log(`✅ Assigned Mentor: ${socket.id}`);
-        } else {
-            io.to(socket.id).emit('roleAssigned', 'Student');
-            console.log(`🟢 Assigned Student: ${socket.id}`);
-        }
-
-        // Send current code to new student (if exists)
-        if (currentCode[id]) {
-            io.to(socket.id).emit('codeUpdate', currentCode[id]);
-        }
-
-        // Update student count
-        const studentCount = roomUsers[id].filter(uid => uid !== roomMentors[id]).length;
-        io.to(id).emit('updateStudentCount', studentCount);
-
-        console.log('AFTER:', {
-            roomUsers: roomUsers[id],
-            roomMentor: roomMentors[id],
-            studentCount
-        });
-    });
-
-    socket.on('leaveRoom', (roomId) => {
-        console.log(`🚪 leaveRoom received from ${socket.id} for room ${roomId}`);
-        if (roomUsers[roomId]) {
-            roomUsers[roomId] = roomUsers[roomId].filter(uid => uid !== socket.id);
-
-            if (roomMentors[roomId] === socket.id) {
-                delete roomMentors[roomId];
-                console.log(`🧹 Mentor ${socket.id} removed from room ${roomId}`);
-            }
-
-            if (roomUsers[roomId].length === 0) {
-                console.log(`🧼 Room ${roomId} now empty. Cleaning up.`);
-                delete roomUsers[roomId];
-                delete currentCode[roomId];
-            }
-        }
-    });
-
-    socket.on('codeChange', ({ id, newCode }) => {
-        currentCode[id] = newCode;
-        socket.to(id).emit('codeUpdate', newCode);
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`User ${socket.id} disconnected`);
-
-        for (const roomId in roomUsers) {
-            const users = roomUsers[roomId];
-            const index = users.indexOf(socket.id);
-
-            if (index !== -1) {
-                users.splice(index, 1);
-
-                // 🧠 If mentor left
-                if (roomMentors[roomId] === socket.id) {
-                    console.log(`Mentor left room ${roomId}, kicking students...`);
-                    io.to(roomId).emit('mentorLeft');
-                    delete roomMentors[roomId];
-                    delete currentCode[roomId];
-                    delete roomUsers[roomId];
-                } else {
-                    // Student left, update count
-                    const studentCount = users.filter(uid => uid !== roomMentors[roomId]).length;
-                    io.to(roomId).emit('updateStudentCount', studentCount);
-                }
-
-                // Cleanup empty room
-                if (users.length === 0) {
-                    delete roomUsers[roomId];
-                    delete currentCode[roomId];
-                }
-
-                break;
-            }
-        }
-    });
+        break;
+      }
+    }
+  });
 });
 
 app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-    res.send('Server is running...');
+  res.send('Server is running...');
 });
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('Connected to MongoDB');
-        console.log('Database name:', mongoose.connection.db.databaseName);
-    })
-    .catch(err => {
-        console.error('MongoDB connection error:', err);
-    });
+// connect to mongo
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+    console.log('Database name:', mongoose.connection.db.databaseName);
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+  });
 
-app.use('/api/codeblocks', require('./routes/codeBlocks'));
+app.use('/api/codeblocks', require('./routes/codeBlocks')); 
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
