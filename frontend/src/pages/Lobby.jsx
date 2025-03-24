@@ -78,20 +78,26 @@ const Lobby = () => {
       {/* show new block form if pressed */}
       {showForm && (
         <form onSubmit={handleAddBlock} style={{ marginBottom: '30px', textAlign: 'left' }}>
-          {['title', 'description', 'initial Code', 'solution'].map((field) => (
-            <div key={field} style={{ marginBottom: '10px' }}>
+          {[
+            { label: 'Title', key: 'title' },
+            { label: 'Description', key: 'description' },
+            { label: 'Initial Code', key: 'initialCode' },
+            { label: 'Solution', key: 'solution' },
+          ].map(({ label, key }) => (
+            <div key={key} style={{ marginBottom: '10px' }}>
               <label style={{ display: 'block', fontWeight: 'bold' }}>
-                {field.charAt(0).toUpperCase() + field.slice(1)}:
+                {label}:
               </label>
               <textarea
-                rows={field === 'description' ? 2 : 4}
+                rows={key === 'description' ? 2 : 4}
                 required
-                value={newBlock[field]}
-                onChange={(e) => setNewBlock({ ...newBlock, [field]: e.target.value })}
+                value={newBlock[key]}
+                onChange={(e) => setNewBlock({ ...newBlock, [key]: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '5px' }}
               />
             </div>
           ))}
+
           <button
             type="submit"
             style={{
